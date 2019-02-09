@@ -2,6 +2,7 @@ package com.roach.http.service;
 
 import com.google.common.base.Preconditions;
 import com.roach.http.model.HttpConnection;
+import com.roach.http.model.HttpMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,21 +18,23 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 
-public class HttpServer {
+public class NioHttpServer {
 
-    private static final Logger LOG = LogManager.getLogger(HttpServer.class);
+    private static final Logger LOG = LogManager.getLogger(NioHttpServer.class);
 
     public static String SOCKET_ADDRESS = "127.0.0.1";
+    public static String SERVER = "Radioactive Roach v1.0";
     public static int SOCKET_PORT = 8080;
     public static int BUFFER_SIZE = 1024;
 
     private HttpConnectionManager httpConnectionManager;
+    private HttpMultiProcessor httpMultiProcessor;
     private ServerSocketChannel serverSocketChannel;
     private SelectableChannel serverSelectableChannel;
     private Selector serverSelector;
     private volatile boolean running;
 
-    public HttpServer() throws IOException {
+    public NioHttpServer() throws IOException {
         serverSocketChannel = ServerSocketChannel.open();
         serverSelectableChannel = serverSocketChannel.configureBlocking(false);
         serverSocketChannel.socket().bind(new InetSocketAddress(SOCKET_ADDRESS, SOCKET_PORT));
@@ -84,7 +87,6 @@ public class HttpServer {
                 if (key.channel() == null) {
                     internalClose(key);
                 } else {
-                    Preconditions.checkNotNull(key.attachment());
                     httpConnectionManager.removeConnection((String) key.attachment());
                 }
             }
@@ -123,13 +125,20 @@ public class HttpServer {
                 if (bytesCount == -1) {
                     LOG.debug("Close connection {}.", key);
                     httpConnectionManager.removeConnection((String) key.attachment());
+                    internalClose(key);
+                    return;
                 }
                 break;
             }
         }
 
-        Preconditions.checkNotNull(httpConnectionManager.touchConnection((String) key.attachment()));
-        System.out.println(stringBuilder);
+        httpMultiProcessor.offerData(
+                new HttpMessage(
+                        stringBuilder.toString(),
+                        Preconditions.checkNotNull(httpConnectionManager.touchConnection((String) key.attachment())),
+                        System.currentTimeMillis()
+                )
+        );
     }
 
     private void onRead(SelectionKey selectionKey) throws IOException {
@@ -139,6 +148,10 @@ public class HttpServer {
 
     public void setHttpConnectionManager(HttpConnectionManager httpConnectionManager) {
         this.httpConnectionManager = httpConnectionManager;
+    }
+
+    public void setHttpMultiProcessor(HttpMultiProcessor httpMultiProcessor) {
+        this.httpMultiProcessor = httpMultiProcessor;
     }
 
 }

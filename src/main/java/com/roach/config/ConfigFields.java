@@ -1,14 +1,21 @@
 package com.roach.config;
 
 import com.google.common.base.Preconditions;
+import com.roach.http.service.NioHttpServer;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 public enum ConfigFields {
 
-    LISTEN_PORT("roach.port", "8080", (value) -> {
-        // TODO: introduce
+    LISTEN_PORT("roach.port", String.valueOf(NioHttpServer.SOCKET_PORT), (value) -> {
+        NioHttpServer.SOCKET_PORT = Integer.valueOf(value);
+    }),
+    LISTEN_ADDRESS("roach.address", NioHttpServer.SOCKET_ADDRESS, (value) -> {
+        NioHttpServer.SOCKET_ADDRESS = value;
+    }),
+    BUFFER_SIZE("roach.buffer.size", String.valueOf(NioHttpServer.BUFFER_SIZE), (value) -> {
+        NioHttpServer.BUFFER_SIZE = Integer.valueOf(value);
     }),
     STATIC_CONTEXT_PATH("roach.static.content.path", "/", (value) -> {
         // TODO: introduce
