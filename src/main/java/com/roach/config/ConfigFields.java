@@ -8,14 +8,14 @@ import java.util.function.Consumer;
 
 public enum ConfigFields {
 
-    LISTEN_PORT("roach.port", String.valueOf(NioHttpServer.SOCKET_PORT), (value) -> {
-        NioHttpServer.SOCKET_PORT = Integer.valueOf(value);
+    LISTEN_PORT("roach.port", String.valueOf(ConfigConstants.SERVER_SOCKET_PORT), (value) -> {
+        ConfigConstants.SERVER_SOCKET_PORT = Integer.valueOf(value);
     }),
-    LISTEN_ADDRESS("roach.address", NioHttpServer.SOCKET_ADDRESS, (value) -> {
-        NioHttpServer.SOCKET_ADDRESS = value;
+    LISTEN_ADDRESS("roach.address", ConfigConstants.SERVER_SOCKET_ADDRESS, (value) -> {
+        ConfigConstants.SERVER_SOCKET_ADDRESS = value;
     }),
-    BUFFER_SIZE("roach.buffer.size", String.valueOf(NioHttpServer.BUFFER_SIZE), (value) -> {
-        NioHttpServer.BUFFER_SIZE = Integer.valueOf(value);
+    BUFFER_SIZE("roach.buffer.size", String.valueOf(ConfigConstants.SERVER_BUFFER_SIZE), (value) -> {
+        ConfigConstants.SERVER_BUFFER_SIZE = Integer.valueOf(value);
     }),
     STATIC_CONTEXT_PATH("roach.static.content.path", "/", (value) -> {
         // TODO: introduce

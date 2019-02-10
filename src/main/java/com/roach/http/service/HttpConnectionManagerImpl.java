@@ -1,6 +1,7 @@
 package com.roach.http.service;
 
 import com.google.common.base.Preconditions;
+import com.roach.config.ConfigConstants;
 import com.roach.http.model.HttpConnection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,7 +18,7 @@ public class HttpConnectionManagerImpl implements HttpConnectionManager, Runnabl
     private final ConcurrentHashMap<String, HttpConnection> connections = new ConcurrentHashMap<>();
 
     public HttpConnectionManagerImpl(ScheduledExecutorService executorService) {
-        executorService.scheduleWithFixedDelay(this, 5, 1, TimeUnit.SECONDS);
+        executorService.scheduleWithFixedDelay(this, 5, ConfigConstants.DISCONNECT_DELAY_IN_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override
@@ -62,7 +63,7 @@ public class HttpConnectionManagerImpl implements HttpConnectionManager, Runnabl
             try {
                 httpConnection.getChannel().close();
             } catch (IOException e) {
-                LOG.error("Exception during closing chanel.",e);
+                LOG.error("Exception during closing chanel.", e);
             }
             LOG.debug("Delete connection {}", httpConnection);
         }
@@ -72,6 +73,13 @@ public class HttpConnectionManagerImpl implements HttpConnectionManager, Runnabl
     @Override
     public HttpConnection removeConnection(HttpConnection httpConnection) {
         return removeConnection(httpConnection.getId());
+    }
+
+    @Override
+    public void shutdown() {
+        for (HttpConnection httpConnection : connections.values()) {
+            removeConnection(httpConnection);
+        }
     }
 
 }

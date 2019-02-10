@@ -1,5 +1,6 @@
 package com.roach;
 
+import com.roach.config.ConfigConstants;
 import com.roach.config.Configurator;
 import com.roach.http.service.HttpConnectionManagerImpl;
 import com.roach.http.service.HttpMultiProcessor;
@@ -11,13 +12,14 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class Main {
 
     public static void main(String[] args) throws IOException {
         new Configurator().onStartup();
+
+
         new Thread(() -> {
             try {
                 Thread.sleep(2000);
@@ -35,8 +37,6 @@ public class Main {
                         "\r\n");
                 out.flush();
                 Thread.sleep(2000);
-//                out.write("122");
-//                out.flush();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (UnknownHostException e) {
@@ -45,14 +45,14 @@ public class Main {
                 e.printStackTrace();
             }
         }).start();
+
+
         NioHttpServer nioHttpServer = new NioHttpServer();
-        ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(80);
+        ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(ConfigConstants.MAX_NUMBER_OF_HTTP_PROCESSORS + 1);
         nioHttpServer.setHttpConnectionManager(new HttpConnectionManagerImpl(scheduledExecutorService));
         HttpMultiProcessor httpMultiProcessor = new HttpMultiProcessorImpl(scheduledExecutorService);
-        httpMultiProcessor.startProcessing();
         nioHttpServer.setHttpMultiProcessor(httpMultiProcessor);
-        nioHttpServer.pollConnection();
-
+        nioHttpServer.startProcessing();
     }
 
 }

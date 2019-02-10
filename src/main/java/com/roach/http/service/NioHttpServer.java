@@ -1,6 +1,7 @@
 package com.roach.http.service;
 
 import com.google.common.base.Preconditions;
+import com.roach.config.ConfigConstants;
 import com.roach.http.model.HttpConnection;
 import com.roach.http.model.HttpMessage;
 import org.apache.logging.log4j.LogManager;
@@ -18,14 +19,13 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 
+import static com.roach.config.ConfigConstants.SERVER_BUFFER_SIZE;
+import static com.roach.config.ConfigConstants.SERVER_SOCKET_ADDRESS;
+import static com.roach.config.ConfigConstants.SERVER_SOCKET_PORT;
+
 public class NioHttpServer {
 
     private static final Logger LOG = LogManager.getLogger(NioHttpServer.class);
-
-    public static String SOCKET_ADDRESS = "127.0.0.1";
-    public static String SERVER = "Radioactive Roach v1.0";
-    public static int SOCKET_PORT = 8080;
-    public static int BUFFER_SIZE = 1024;
 
     private HttpConnectionManager httpConnectionManager;
     private HttpMultiProcessor httpMultiProcessor;
@@ -37,7 +37,7 @@ public class NioHttpServer {
     public NioHttpServer() throws IOException {
         serverSocketChannel = ServerSocketChannel.open();
         serverSelectableChannel = serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.socket().bind(new InetSocketAddress(SOCKET_ADDRESS, SOCKET_PORT));
+        serverSocketChannel.socket().bind(new InetSocketAddress(SERVER_SOCKET_ADDRESS, SERVER_SOCKET_PORT));
 
         serverSelector = Selector.open();
 
@@ -46,7 +46,7 @@ public class NioHttpServer {
         LOG.info("HTTP server was started!!!");
     }
 
-    public void pollConnection() {
+    private void pollConnections() {
         while (running) {
             try {
                 int num = serverSelector.select();
@@ -61,7 +61,14 @@ public class NioHttpServer {
         }
     }
 
+    public void startProcessing() throws IOException {
+        httpMultiProcessor.startProcessing();
+        pollConnections();
+    }
+
     public void shutdown() throws IOException {
+        httpConnectionManager.shutdown();
+        httpMultiProcessor.shutdown();
         running = false;
         serverSocketChannel.close();
         serverSelectableChannel.close();
@@ -83,23 +90,14 @@ public class NioHttpServer {
                         break;
                 }
             } catch (Exception ex) {
+                internalClose(key);
                 LOG.error("Error during handling data from selector.", ex);
-                if (key.channel() == null) {
-                    internalClose(key);
-                } else {
-                    httpConnectionManager.removeConnection((String) key.attachment());
-                }
             }
         }
     }
 
     private void internalClose(SelectionKey key) {
-        try {
-            key.cancel();
-            key.channel().close();
-        } catch (IOException ex) {
-            LOG.error("Error during closing chanel.", ex);
-        }
+        httpConnectionManager.removeConnection((String) key.attachment());
     }
 
     private void onAccept(SelectionKey selectionKey) throws IOException {
@@ -107,14 +105,14 @@ public class NioHttpServer {
         SocketChannel channel = socket.getChannel();
         channel.configureBlocking(false);
         SelectionKey key = channel.register(serverSelector, SelectionKey.OP_READ);
-        HttpConnection httpConnection = new HttpConnection(channel, System.currentTimeMillis(), 5000);
+        HttpConnection httpConnection = new HttpConnection(channel, System.currentTimeMillis(), ConfigConstants.INITIAL_TIME_OUT);
         httpConnectionManager.addConnection(httpConnection);
         key.attach(httpConnection.getId());
         LOG.info("New client was accepted. {}", channel);
     }
 
     private void onRead(SocketChannel socketChannel, SelectionKey key) throws IOException {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(SERVER_BUFFER_SIZE);
         StringBuilder stringBuilder = new StringBuilder();
         while (true) {
             int bytesCount = socketChannel.read(byteBuffer);
@@ -124,7 +122,6 @@ public class NioHttpServer {
             } else {
                 if (bytesCount == -1) {
                     LOG.debug("Close connection {}.", key);
-                    httpConnectionManager.removeConnection((String) key.attachment());
                     internalClose(key);
                     return;
                 }
@@ -132,13 +129,13 @@ public class NioHttpServer {
             }
         }
 
-        httpMultiProcessor.offerData(
-                new HttpMessage(
-                        stringBuilder.toString(),
-                        Preconditions.checkNotNull(httpConnectionManager.touchConnection((String) key.attachment())),
-                        System.currentTimeMillis()
-                )
+        HttpMessage message = new HttpMessage(
+                stringBuilder.toString(),
+                Preconditions.checkNotNull(httpConnectionManager.touchConnection((String) key.attachment())),
+                System.currentTimeMillis()
         );
+        message.onStartProcessing();
+        httpMultiProcessor.offerData(message);
     }
 
     private void onRead(SelectionKey selectionKey) throws IOException {
