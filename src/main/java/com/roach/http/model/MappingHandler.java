@@ -9,7 +9,7 @@ public interface MappingHandler {
 
     List<Method> getSupportedMethods();
 
-    List<String> getReturnedTypes();
+    boolean isAcceptable(HttpRequest httpRequest, HttpResponse httpResponse);
 
     void handleRequest(HttpRequest httpRequest, HttpResponse httpResponse);
 

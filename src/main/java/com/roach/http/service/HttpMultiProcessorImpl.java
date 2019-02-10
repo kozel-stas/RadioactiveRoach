@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.*;
 
 public class HttpMultiProcessorImpl implements HttpMultiProcessor, HttpMessageSender {
@@ -93,6 +94,11 @@ public class HttpMultiProcessorImpl implements HttpMultiProcessor, HttpMessageSe
     }
 
     private MappingHandler findHandlerForRequest(HttpRequest httpRequest) {
+        for (MappingHandler mappingHandler : handlers) {
+            if (mappingHandler.getUri().matcher(httpRequest.getUri()).find() && mappingHandler.getSupportedMethods().contains(httpRequest.getMethod())) {
+                return mappingHandler;
+            }
+        }
         return null;
     }
 
@@ -122,15 +128,14 @@ public class HttpMultiProcessorImpl implements HttpMultiProcessor, HttpMessageSe
 
                     MappingHandler mappingHandler = findHandlerForRequest(httpRequest);
                     if (mappingHandler != null) {
-
-                        httpResponse.setResponseCode(ResponseCode.OK);
+                        if (mappingHandler.isAcceptable(httpRequest, httpResponse)) {
+                            mappingHandler.handleRequest(httpRequest, httpResponse);
+                        }
                     } else {
                         httpResponse.setResponseCode(ResponseCode.NOT_FOUND);
                     }
-                } catch (InvalidUserInputException ex) {
-
                 } catch (Exception e) {
-                    if (httpResponse != null || httpResponse.getResponseCode() == null) {
+                    if (httpResponse != null && httpResponse.getResponseCode() == null) {
                         httpResponse.setResponseCode(ResponseCode.INTERNAL_SERVER_ERROR);
                     }
                     LOG.error("Exception was thrown at MessageProcessor", e);
