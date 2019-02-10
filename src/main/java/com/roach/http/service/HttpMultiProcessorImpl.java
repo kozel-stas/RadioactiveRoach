@@ -1,12 +1,16 @@
 package com.roach.http.service;
 
 import com.roach.http.model.*;
+import com.roach.http.model.exceptions.InvalidUserInputException;
+import com.roach.http.model.impl.SystemFilter;
+import com.roach.http.model.parser.HttpMessageParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.*;
 
-public class HttpMultiProcessorImpl implements HttpMultiProcessor {
+public class HttpMultiProcessorImpl implements HttpMultiProcessor, HttpMessageSender {
 
     private final static Object STUB = new Object();
     private final static int MAX_SIZE = 10_000;
@@ -16,10 +20,16 @@ public class HttpMultiProcessorImpl implements HttpMultiProcessor {
 
     private final BlockingQueue<HttpMessage> messageQueue = new ArrayBlockingQueue<>(MAX_SIZE);
     private final ConcurrentHashMap<HttpMessageProcessor, Object> processors = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<Filter> filters = new CopyOnWriteArrayList<>();
+    //TODO: prefix tree.
+    private final CopyOnWriteArrayList<MappingHandler> handlers = new CopyOnWriteArrayList<>();
     private final ScheduledThreadPoolExecutor executor;
+    private final HttpMessageSender httpMessageSender;
 
     public HttpMultiProcessorImpl(ScheduledThreadPoolExecutor executor) {
         this.executor = executor;
+        httpMessageSender = this;
+        filters.add(new SystemFilter());
     }
 
     @Override
@@ -68,6 +78,24 @@ public class HttpMultiProcessorImpl implements HttpMultiProcessor {
         executor.execute(processor);
     }
 
+    @Override
+    public boolean sendResponse(HttpRequest httpRequest, HttpResponse response) {
+        try {
+            HttpMessage httpMessage = HttpMessageParser.INSTANCE.createHttpMessageFromResponse(httpRequest, response);
+            ByteBuffer buffer = ByteBuffer.wrap(httpMessage.getMessage().getBytes());
+            httpMessage.getHttpConnection().getChannel().write(buffer);
+            LOG.debug("Response {}", httpMessage);
+            return true;
+        } catch (Exception ex) {
+            LOG.error("Exception during sending", ex);
+            return false;
+        }
+    }
+
+    private MappingHandler findHandlerForRequest(HttpRequest httpRequest) {
+        return null;
+    }
+
     private final class HttpMessageProcessor implements Runnable {
 
         private volatile boolean processingAllowed = true;
@@ -77,15 +105,43 @@ public class HttpMultiProcessorImpl implements HttpMultiProcessor {
         public void run() {
             thread = Thread.currentThread();
 
+            HttpRequest httpRequest = null;
+            HttpResponse httpResponse = null;
             while (processingAllowed) {
                 HttpMessage httpMessage = null;
                 try {
                     httpMessage = messageQueue.take();
                     httpMessage.onStartProcessing();
 
+                    httpRequest = HttpMessageParser.INSTANCE.createHttpRequestFromMessage(httpMessage);
+                    httpResponse = new HttpResponse(httpMessage.getHttpConnection());
+
+                    for (Filter filter : filters) {
+                        filter.processData(httpRequest, httpResponse);
+                    }
+
+                    MappingHandler mappingHandler = findHandlerForRequest(httpRequest);
+                    if (mappingHandler != null) {
+
+                        httpResponse.setResponseCode(ResponseCode.OK);
+                    } else {
+                        httpResponse.setResponseCode(ResponseCode.NOT_FOUND);
+                    }
+                } catch (InvalidUserInputException ex) {
 
                 } catch (Exception e) {
-
+                    if (httpResponse != null || httpResponse.getResponseCode() == null) {
+                        httpResponse.setResponseCode(ResponseCode.INTERNAL_SERVER_ERROR);
+                    }
+                    LOG.error("Exception was thrown at MessageProcessor", e);
+                } finally {
+                    if (httpRequest != null && httpResponse != null) {
+                        httpMessageSender.sendResponse(httpRequest, httpResponse);
+                    }
+                    if (httpMessage != null) {
+                        httpMessage.onFinishProcessing();
+                    }
+                    httpMessage = null;
                 }
             }
         }

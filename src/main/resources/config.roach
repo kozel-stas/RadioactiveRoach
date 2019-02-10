@@ -1,3 +1,4 @@
 roach.port=8080
+roach.address=127.0.0.1
+roach.buffer.size=1024
 roach.static.content.path=C:/
-config
