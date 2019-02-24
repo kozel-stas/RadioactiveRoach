@@ -1,8 +1,13 @@
 package com.roach.http.model.parser;
 
 import com.google.common.net.HttpHeaders;
-import com.roach.http.model.*;
-import com.roach.http.service.NioHttpServer;
+import com.roach.config.ConfigConstants;
+import com.roach.http.model.HttpMessage;
+import com.roach.http.model.HttpRequest;
+import com.roach.http.model.HttpResponse;
+import com.roach.http.model.Method;
+import com.roach.http.model.ResponseCode;
+import com.roach.http.model.Version;
 import com.roach.utils.StringUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -62,11 +67,21 @@ public class HttpMessageParser {
     public HttpMessage createHttpMessageFromResponse(HttpRequest httpRequest, HttpResponse httpResponse) throws ParseException {
         StringBuilder out = new StringBuilder();
         out.append(getOrDefault(httpRequest.getVersion()).getName()).append(" ").append(httpResponse.getResponseCode().getCode()).append(" ").append(httpResponse.getResponseCode().getDetail()).append("\r\n");
-        out.append(HttpHeaders.SERVER).append(": ").append(NioHttpServer.SERVER).append("\r\n");
+        out.append(HttpHeaders.SERVER).append(": ").append(ConfigConstants.SERVER_NAME).append("\r\n");
         out.append(HttpHeaders.DATE).append(": ").append(dateFormat.format(Calendar.getInstance().getTime())).append("\r\n");
         out.append(HttpHeaders.CONNECTION).append(": ").append(getStateOfConnection(httpRequest, httpResponse)).append("\r\n");
         out.append(HttpHeaders.CONTENT_LENGTH).append(": ").append(0).append("\r\n").append("\r\n");
         return new HttpMessage(out.toString(), httpRequest.getHttpConnection(), 0);
+    }
+
+    public HttpMessage createServiceUnavailableResponse(HttpMessage httpMessage) throws ParseException {
+        StringBuilder out = new StringBuilder();
+        out.append(Version.HTTP1V1).append(" ").append(ResponseCode.SERVICE_UNAVAILABLE.getCode()).append(" ").append(ResponseCode.SERVICE_UNAVAILABLE.getDetail()).append("\r\n");
+        out.append(HttpHeaders.SERVER).append(": ").append(ConfigConstants.SERVER_NAME).append("\r\n");
+        out.append(HttpHeaders.DATE).append(": ").append(dateFormat.format(Calendar.getInstance().getTime())).append("\r\n");
+        out.append(HttpHeaders.CONNECTION).append(": ").append(com.roach.http.model.HttpHeaders.CLOSE).append("\r\n");
+        out.append(HttpHeaders.CONTENT_LENGTH).append(": ").append(0).append("\r\n").append("\r\n");
+        return new HttpMessage(out.toString(), httpMessage.getHttpConnection(), 0);
     }
 
     private static Version getOrDefault(Version version) {

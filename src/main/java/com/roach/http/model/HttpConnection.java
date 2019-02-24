@@ -32,15 +32,15 @@ public class HttpConnection {
         assert inProcess >= 0;
     }
 
-    public void setKeepAliveTimeout(long keepAliveTimeout) {
+    public synchronized void setKeepAliveTimeout(long keepAliveTimeout) {
         this.keepAliveTimeout = keepAliveTimeout;
     }
 
-    public boolean isTimedOut(long now) {
+    public synchronized boolean isTimedOut(long now) {
         return forceClose | (now > creationTime + keepAliveTimeout) && !(inProcess > 0);
     }
 
-    public boolean isTimedOutIgnoreProcessing(long now) {
+    public synchronized boolean isTimedOutIgnoreProcessing(long now) {
         return forceClose | (now > creationTime + keepAliveTimeout);
     }
 
@@ -52,7 +52,7 @@ public class HttpConnection {
         return id;
     }
 
-    public void enableForceClose() {
+    public synchronized void enableForceClose() {
         this.forceClose = true;
     }
 

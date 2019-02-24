@@ -12,4 +12,6 @@ public interface HttpConnectionManager {
 
     HttpConnection removeConnection(HttpConnection httpConnection);
 
+    void shutdown();
+
 }
