@@ -7,7 +7,7 @@ import java.text.ParseException;
 public class HeadersParser1v1 implements HeadersParser {
 
     @Override
-    public HttpHeaders parseHeadersAccordingWithVersion(String[] headers) throws ParseException {
+    public HttpHeaders parseHeadersAccordingToVersion(String[] headers) throws ParseException {
         HttpHeaders httpHeaders = new HttpHeaders();
         for (String line : headers) {
             int index = line.indexOf(':');

@@ -6,6 +6,6 @@ import java.text.ParseException;
 
 public interface HeadersParser {
 
-    HttpHeaders parseHeadersAccordingWithVersion(String[] headers) throws ParseException;
+    HttpHeaders parseHeadersAccordingToVersion(String[] headers) throws ParseException;
 
 }

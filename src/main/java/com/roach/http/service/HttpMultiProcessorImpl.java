@@ -1,14 +1,10 @@
 package com.roach.http.service;
-
 import com.roach.http.model.*;
-import com.roach.http.model.exceptions.InvalidUserInputException;
 import com.roach.http.model.impl.SystemFilter;
 import com.roach.http.model.parser.HttpMessageParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.concurrent.*;
 
 public class HttpMultiProcessorImpl implements HttpMultiProcessor, HttpMessageSender {
@@ -66,7 +62,7 @@ public class HttpMultiProcessorImpl implements HttpMultiProcessor, HttpMessageSe
         }
         processors.clear();
     }
-
+// разобраться
     private synchronized void startNewProcessorIfNeed() {
         if (messageQueue.size() > THRESHOLD_FOR_THREAD) {
             createNewMessageProcessor();

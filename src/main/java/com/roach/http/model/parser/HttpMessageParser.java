@@ -52,7 +52,7 @@ public class HttpMessageParser {
                 httpMessage.getHttpConnection(),
                 method,
                 version,
-                version.getHeadersParser().parseHeadersAccordingWithVersion(StringUtils.concat(lines, 1, lastHeader)),
+                version.getHeadersParser().parseHeadersAccordingToVersion(StringUtils.concat(lines, 1, lastHeader)),
                 uri,
                 httpMessage.getStartProcessing(),
                 body.length > 1 ? decode(body[1]) : null

@@ -1,6 +1,7 @@
 package com.roach;
 
 import com.roach.config.Configurator;
+import com.roach.content.scanner.DirectoryScanner;
 import com.roach.http.service.HttpConnectionManagerImpl;
 import com.roach.http.service.HttpMultiProcessor;
 import com.roach.http.service.HttpMultiProcessorImpl;
@@ -13,7 +14,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-
+// разобраться как работает Http
 public class Main {
 
     public static void main(String[] args) throws IOException {
@@ -32,7 +33,9 @@ public class Main {
                         "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8\r\n" +
                         "Accept-Encoding: gzip, deflate, br\r\n" +
                         "Accept-Language: ru-RU,ru;q=0.9,en;q=0.8\r\n" +
-                        "\r\n");
+                        "\r\n"
+                //тело запроса
+                );
                 out.flush();
                 Thread.sleep(2000);
 //                out.write("122");
@@ -45,6 +48,8 @@ public class Main {
                 e.printStackTrace();
             }
         }).start();
+        DirectoryScanner directoryScanner = new DirectoryScanner("C:\\Users\\vlads\\Pictures");
+        directoryScanner.show();
         NioHttpServer nioHttpServer = new NioHttpServer();
         ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(80);
         nioHttpServer.setHttpConnectionManager(new HttpConnectionManagerImpl(scheduledExecutorService));
