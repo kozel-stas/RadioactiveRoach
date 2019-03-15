@@ -1,6 +1,7 @@
 package com.roach.http.service;
 
 import com.roach.http.model.HttpMessage;
+import com.roach.http.model.MappingHandler;
 
 public interface HttpMultiProcessor {
 
@@ -10,4 +11,5 @@ public interface HttpMultiProcessor {
 
     void shutdown();
 
+    void addHandler(MappingHandler mappingHandler);
 }

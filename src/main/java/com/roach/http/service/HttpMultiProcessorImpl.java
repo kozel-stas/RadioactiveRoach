@@ -11,6 +11,7 @@ import com.roach.http.model.impl.SystemFilter;
 import com.roach.http.model.parser.HttpMessageParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -50,6 +51,14 @@ public class HttpMultiProcessorImpl implements HttpMultiProcessor, HttpMessageSe
         return added;
     }
 
+    public void addHandler (MappingHandler mappingHandler) {
+        this.handlers.add(mappingHandler);
+    }
+
+    public void deleteHandler (String uri) {
+        // удалять по uri
+    }
+
     @Override
     public void startProcessing() {
         if (processors.size() == 0) {
@@ -71,7 +80,8 @@ public class HttpMultiProcessorImpl implements HttpMultiProcessor, HttpMessageSe
         }
         processors.clear();
     }
-// разобраться
+
+    // разобраться
     private synchronized void startNewProcessorIfNeed() {
         if (messageQueue.size() > ConfigConstants.THRESHOLD_FOR_UNPROCESSED_MESSAGES && processors.size() < ConfigConstants.MAX_NUMBER_OF_HTTP_PROCESSORS) {
             createNewMessageProcessor();

@@ -65,6 +65,7 @@ public class HttpMessageParser {
     }
 
     public HttpMessage createHttpMessageFromResponse(HttpRequest httpRequest, HttpResponse httpResponse) throws ParseException {
+        // переводить HttpReponse в String (out.toString)
         StringBuilder out = new StringBuilder();
         out.append(getOrDefault(httpRequest.getVersion()).getName()).append(" ").append(httpResponse.getResponseCode().getCode()).append(" ").append(httpResponse.getResponseCode().getDetail()).append("\r\n");
         out.append(HttpHeaders.SERVER).append(": ").append(ConfigConstants.SERVER_NAME).append("\r\n");
@@ -91,9 +92,8 @@ public class HttpMessageParser {
     private static String getStateOfConnection(HttpRequest httpRequest, HttpResponse response) {
         if (httpRequest.getHttpConnection().isTimedOutIgnoreProcessing(System.currentTimeMillis())) {
             return com.roach.http.model.HttpHeaders.CLOSE;
-        } else {
-            return com.roach.http.model.HttpHeaders.KEEP_ALIVE;
         }
+        return com.roach.http.model.HttpHeaders.KEEP_ALIVE;
     }
 
     private static String decode(String encoded) throws ParseException {
